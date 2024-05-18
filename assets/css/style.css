@@ -1,0 +1,13 @@
+.custom-product-comparison table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.custom-product-comparison th,
+.custom-product-comparison td {
+    padding: 25px 8px;
+}
+
+.custom-product-comparison th {
+    text-align: left;
+}
