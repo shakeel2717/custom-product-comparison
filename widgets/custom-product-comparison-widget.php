@@ -150,102 +150,117 @@ class Elementor_Custom_Product_Comparison_Widget extends \Elementor\Widget_Base
     }
 
     protected function render()
-    {
-        $settings = $this->get_settings_for_display();
-        $category_id = $settings['category_id'];
+{
+    $settings = $this->get_settings_for_display();
+    $category_id = $settings['category_id'];
 
-        if (empty($category_id)) {
-            return;
-        }
+    if (empty($category_id)) {
+        return;
+    }
 
-        $args = [
-            'post_type' => 'product',
-            'posts_per_page' => -1,
-            'tax_query' => [
-                [
-                    'taxonomy' => 'product_cat',
-                    'field' => 'term_id',
-                    'terms' => $category_id,
-                ],
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => -1,
+        'tax_query' => [
+            [
+                'taxonomy' => 'product_cat',
+                'field' => 'term_id',
+                'terms' => $category_id,
             ],
-        ];
+        ],
+    ];
 
-        $products = new WP_Query($args);
+    $products = new WP_Query($args);
 
-        if (!$products->have_posts()) {
-            return;
-        }
+    if (!$products->have_posts()) {
+        return;
+    }
 
-        $all_features = [];
+    $all_features = [];
 
-        while ($products->have_posts()) {
-            $products->the_post();
-            global $product;
+    while ($products->have_posts()) {
+        $products->the_post();
+        global $product;
 
-            $fields = get_field_objects($product->get_id());
-            if ($fields) {
-                foreach ($fields as $field_name => $field) {
-                    if (!in_array($field['label'], $all_features)) {
-                        $all_features[] = $field['label'];
-                    }
+        $fields = get_field_objects($product->get_id());
+        if ($fields) {
+            foreach ($fields as $field_name => $field) {
+                if (!in_array($field['label'], $all_features)) {
+                    $all_features[] = $field['label'];
                 }
             }
         }
-
-        wp_reset_postdata();
-
-        echo '<div class="custom-product-comparison">';
-        echo '<table>';
-        echo '<thead>';
-        echo '<tr><th>Feature</th>';
-
-        while ($products->have_posts()) {
-            $products->the_post();
-            global $product;
-            echo '<th>' . $product->get_name() . '</th>';
-        }
-
-        echo '</tr>';
-        echo '</thead>';
-        echo '<tbody>';
-
-        // Add row for product images
-        echo '<tr><th>Image</th>';
-        while ($products->have_posts()) {
-            $products->the_post();
-            global $product;
-            echo '<td>' . get_the_post_thumbnail($product->get_id(), 'thumbnail') . '</td>';
-        }
-        echo '</tr>';
-
-        // Add row for product prices
-        echo '<tr><th>Price</th>';
-        while ($products->have_posts()) {
-            $products->the_post();
-            global $product;
-            echo '<td>' . wc_price($product->get_price()) . '</td>';
-        }
-        echo '</tr>';
-
-        foreach ($all_features as $feature) {
-            echo '<tr>';
-            echo '<th>' . $feature . '</th>';
-            while ($products->have_posts()) {
-                $products->the_post();
-                global $product;
-                $fields = get_field_objects($product->get_id());
-                $field_value = isset($fields[strtolower(str_replace(' ', '_', $feature))]['value']) ? $fields[strtolower(str_replace(' ', '_', $feature))]['value'] : 'N/A';
-                echo '<td>' . $field_value . '</td>';
-            }
-            echo '</tr>';
-        }
-
-        echo '</tbody>';
-        echo '</table>';
-        echo '</div>';
-
-        wp_reset_postdata();
     }
+
+    wp_reset_postdata();
+
+    echo '<div class="custom-product-comparison">';
+    echo '<table>';
+    echo '<thead>';
+    echo '<tr><th>Feature</th>';
+
+    while ($products->have_posts()) {
+        $products->the_post();
+        global $product;
+        echo '<th>' . $product->get_name() . '</th>';
+    }
+
+    echo '</tr>';
+    echo '</thead>';
+    echo '<tbody>';
+
+    // Add row for product images
+    echo '<tr><td>Image</td>';
+    while ($products->have_posts()) {
+        $products->the_post();
+        global $product;
+        echo '<td>' . get_the_post_thumbnail($product->get_id(), 'thumbnail') . '</td>';
+    }
+    echo '</tr>';
+
+    // Add row for product prices
+    echo '<tr><td>Price</td>';
+    while ($products->have_posts()) {
+        $products->the_post();
+        global $product;
+        echo '<td>' . wc_price($product->get_price()) . '</td>';
+    }
+    echo '</tr>';
+
+    // Reset post data to iterate again for the features
+    $products->rewind_posts();
+
+    foreach ($all_features as $feature) {
+        echo '<tr>';
+        echo '<td>' . $feature . '</td>';
+        while ($products->have_posts()) {
+            $products->the_post();
+            global $product;
+            $fields = get_field_objects($product->get_id());
+
+            // Handle checkbox/select fields properly
+            $field_key = strtolower(str_replace(' ', '_', $feature));
+            $field_value = 'N/A';
+            if (isset($fields[$field_key])) {
+                $field = $fields[$field_key];
+                if (is_array($field['value'])) {
+                    $field_value = !empty($field['value']) ? 'Available' : 'N/A';
+                } else {
+                    $field_value = $field['value'] ? 'Available' : 'N/A';
+                }
+            }
+            echo '<td>' . $field_value . '</td>';
+        }
+        echo '</tr>';
+    }
+
+    echo '</tbody>';
+    echo '</table>';
+    echo '</div>';
+
+    wp_reset_postdata();
+}
+
 
 
     protected function _content_template()
